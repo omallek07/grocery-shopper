@@ -1,58 +1,62 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
+import {
+  ActivityIndicator,
+  Platform,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
+import { api } from '@/lib/axios';
+import { HealthCheckResponse } from '@grocery-shopper/types';
+import { useQuery } from '@tanstack/react-query';
+
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { WebBadge } from '@/components/web-badge';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
-
 export default function HomeScreen() {
+  const {
+    data: healthCheck,
+    isLoading,
+    error,
+  } = useQuery<HealthCheckResponse>({
+    queryKey: ['health'],
+    queryFn: async () =>
+      api.get<HealthCheckResponse>('/health').then((res) => res.data),
+  });
+
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
+          {isLoading && <ActivityIndicator size='large' color='#FF6b35' />}
+
+          <ThemedText type='title' style={styles.title}>
+            Grocery Shopper
           </ThemedText>
-        </ThemedView>
 
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
+          <Text style={styles.subtitle}>Connection Status</Text>
 
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
+          {healthCheck && (
+            <View style={styles.statusBox}>
+              <Text style={styles.statusText}>
+                API Status: {String(healthCheck.status).toUpperCase()}
+              </Text>
+              <Text style={styles.timestampText}>
+                {new Date(healthCheck.timestamp).toLocaleString()}
+              </Text>
+            </View>
+          )}
+
+          {error && (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>
+                Could not reach the API. Is the server running?
+              </Text>
+            </View>
+          )}
         </ThemedView>
 
         {Platform.OS === 'web' && <WebBadge />}
@@ -65,7 +69,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
-    flexDirection: 'row',
+    alignItems: 'center',
   },
   safeArea: {
     flex: 1,
@@ -80,19 +84,51 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flex: 1,
     paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
+    gap: Spacing.three,
   },
   title: {
     textAlign: 'center',
+    fontSize: 32,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  subtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    color: '#666',
   },
   code: {
     textTransform: 'uppercase',
   },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+  statusBox: {
+    backgroundColor: '#F0FFF4',
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+    width: '100%',
+  },
+  statusText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#22543D',
+  },
+  timestampText: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 6,
+  },
+  errorBox: {
+    backgroundColor: '#FFF5F5',
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+    width: '100%',
+  },
+  errorText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#E53e3e',
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });
