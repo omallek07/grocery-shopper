@@ -1,4 +1,11 @@
-import { pgEnum, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 export const userRoleEnum = pgEnum('user_role', [
   'CUSTOMER',
@@ -15,7 +22,7 @@ export const users = pgTable('users', {
   lastName: text('last_name').notNull(),
   role: userRoleEnum('role').notNull().default('CUSTOMER'),
   pushToken: text('push_token'),
-  isOnline: text('is_online').default('false').notNull(),
+  isOnline: boolean('is_online').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
