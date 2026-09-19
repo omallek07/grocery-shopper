@@ -1,0 +1,56 @@
+import {
+  numeric,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from 'drizzle-orm/pg-core';
+import { menuItems } from './menus';
+import { restaurants } from './restaurants';
+import { users } from './users';
+
+export const orderStatusEnum = pgEnum('order_status', [
+  'PENDING',
+  'CONFIRMED',
+  'PREPARING',
+  'READY',
+  'DELIVERY',
+  'DELIVERED',
+  'CANCELLED',
+]);
+
+export const orders = pgTable('orders', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  customerId: uuid('customer_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  restaurantId: uuid('restaurant_id')
+    .notNull()
+    .references(() => restaurants.id, { onDelete: 'cascade' }),
+  driverId: uuid('driver_id').references(() => users.id),
+  totalAmount: numeric('total_amount', { precision: 10, scale: 2 }).notNull(),
+  status: text('status').notNull().default('PENDING'),
+  deliveryAddress: text('delivery_address').notNull(),
+  stripePaytmentIntentId: text('stripe_payment_intent_id'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const orderItems = pgTable('order_items', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  orderId: uuid('order_id')
+    .notNull()
+    .references(() => orders.id, { onDelete: 'cascade' }),
+  menuItemId: uuid('menu_item_id')
+    .notNull()
+    .references(() => menuItems.id, { onDelete: 'cascade' }),
+  quantity: numeric('quantity', { precision: 10, scale: 2 }).notNull(),
+  unitPrice: numeric('unit_price', { precision: 10, scale: 2 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export type Order = typeof orders.$inferSelect;
+export type NewOrder = typeof orders.$inferInsert;
+export type OrderItem = typeof orderItems.$inferSelect;
